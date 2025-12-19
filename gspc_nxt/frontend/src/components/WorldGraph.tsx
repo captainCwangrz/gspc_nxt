@@ -51,12 +51,13 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
       return canvas;
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
-    ctx.fillRect(0, 12, canvas.width, 40);
-    ctx.font = 'bold 20px Inter, sans-serif';
-    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '600 20px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(label, canvas.width / 2, 38);
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(label, canvas.width / 2, 34);
     return canvas;
   };
 
@@ -88,8 +89,8 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
           transparent: true,
         }),
       );
-      labelSprite.position.set(0, -5, 0);
-      labelSprite.scale.set(12, 3.2, 1);
+      labelSprite.position.set(0, -6.2, 0);
+      labelSprite.scale.set(10.5, 2.6, 1);
       group.add(labelSprite);
 
       return group;
@@ -110,11 +111,11 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
       const positions = new Float32Array(count * 3);
       const colors = new Float32Array(count * 3);
       const palette = [
-        new THREE.Color('#f8fafc'),
-        new THREE.Color('#bae6fd'),
-        new THREE.Color('#fef3c7'),
+        new THREE.Color('#fef9c3'),
+        new THREE.Color('#a5f3fc'),
         new THREE.Color('#fbcfe8'),
-        new THREE.Color('#c7d2fe'),
+        new THREE.Color('#c4b5fd'),
+        new THREE.Color('#fca5a5'),
       ];
 
       for (let i = 0; i < count; i += 1) {
@@ -127,7 +128,7 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
         positions[index + 2] = radius * Math.cos(theta);
 
         const color = palette[Math.floor(Math.random() * palette.length)].clone();
-        const boost = THREE.MathUtils.randFloat(0.65, 1.2);
+        const boost = THREE.MathUtils.randFloat(0.8, 1.35);
         color.multiplyScalar(boost);
         colors[index] = color.r;
         colors[index + 1] = color.g;
@@ -152,8 +153,8 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
       return new THREE.Points(geometry, material);
     };
 
-    const stars = createPoints(3000, 1.6, 0.85);
-    const dust = createPoints(1600, 3.2, 0.25);
+    const stars = createPoints(3200, 1.9, 0.9);
+    const dust = createPoints(1800, 3.6, 0.3);
     dust.rotation.z = Math.PI / 4;
 
     starGroup.add(stars);
@@ -161,7 +162,12 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
     scene.add(starGroup);
 
     let frameId = 0;
+    const starMaterial = stars.material as THREE.PointsMaterial;
+    const dustMaterial = dust.material as THREE.PointsMaterial;
     const animate = () => {
+      const time = performance.now() * 0.0012;
+      starMaterial.opacity = 0.75 + Math.sin(time) * 0.15;
+      dustMaterial.opacity = 0.2 + Math.cos(time * 0.8) * 0.08;
       starGroup.rotation.y += 0.0003;
       starGroup.rotation.x += 0.0001;
       frameId = requestAnimationFrame(animate);
@@ -184,23 +190,81 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!graphRef.current) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      if (!['w', 'a', 's', 'd'].includes(key)) {
+        return;
+      }
+
+      const camera = graphRef.current.camera();
+      const controls = graphRef.current.controls();
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0;
+      forward.normalize();
+
+      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+      const speed = 6;
+      const movement = new THREE.Vector3();
+
+      if (key === 'w') {
+        movement.add(forward);
+      }
+      if (key === 's') {
+        movement.sub(forward);
+      }
+      if (key === 'a') {
+        movement.sub(right);
+      }
+      if (key === 'd') {
+        movement.add(right);
+      }
+
+      if (movement.lengthSq() === 0) {
+        return;
+      }
+
+      movement.normalize().multiplyScalar(speed);
+      camera.position.add(movement);
+      if (controls) {
+        controls.target.add(movement);
+        controls.update();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <div className="world-graph">
       <ForceGraph3D
         ref={graphRef}
         graphData={graphData}
         backgroundColor="#05050f"
+        enableNodeDrag={false}
         nodeLabel={(node) => `${node.name} (@${node.username})`}
         nodeAutoColorBy="username"
         nodeThreeObject={createNodeObject}
         linkColor={(link) =>
           RELATIONSHIP_COLORS[link.type as string] ?? 'rgba(148, 163, 184, 0.4)'
         }
-        linkOpacity={0.6}
-        linkWidth={(link) => (link.type === 'BEEFING' ? 2.5 : 1.5)}
-        linkDirectionalParticles={(link) => (link.type === 'CRUSH' ? 10 : 4)}
-        linkDirectionalParticleWidth={2.8}
-        linkDirectionalParticleSpeed={0.012}
+        linkOpacity={0.18}
+        linkWidth={(link) => (link.type === 'BEEFING' ? 1.4 : 0.8)}
+        linkDirectionalParticles={(link) => (link.type === 'CRUSH' ? 18 : 10)}
+        linkDirectionalParticleWidth={1.8}
+        linkDirectionalParticleSpeed={(link) => (link.type === 'CRUSH' ? 0.02 : 0.015)}
         linkDirectionalParticleColor={(link) =>
           RELATIONSHIP_COLORS[link.type as string] ?? '#cbd5f5'
         }
