@@ -8,6 +8,7 @@ export interface GraphUpdatePayload {
 export interface NewMessagePayload {
   toId: number;
   fromId: number;
+  id: number;
 }
 
 @Injectable()

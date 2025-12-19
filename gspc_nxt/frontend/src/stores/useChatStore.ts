@@ -20,6 +20,7 @@ interface ChatState {
   readReceipts: Record<number, number>;
   activePeerId: number | null;
   setActivePeer: (peerId: number | null) => void;
+  incrementUnread: (peerId: number) => void;
   loadConversation: (userId: number, peerId: number) => Promise<void>;
   sendMessage: (userId: number, peerId: number, message: string) => Promise<void>;
   handleIncomingMessage: (userId: number, peerId: number) => Promise<void>;
@@ -55,6 +56,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activePeerId: null,
   setActivePeer: (peerId) => {
     set({ activePeerId: peerId });
+  },
+  incrementUnread: (peerId) => {
+    set((state) => ({
+      unreadCounts: {
+        ...state.unreadCounts,
+        [peerId]: (state.unreadCounts[peerId] ?? 0) + 1,
+      },
+    }));
   },
   loadConversation: async (userId, peerId) => {
     const response = await api.get('/chat/retrieve', {
