@@ -33,6 +33,8 @@ interface GraphState {
   lastUpdate: string | null;
   refreshGraph: (userId: number) => Promise<void>;
   applyGraphUpdate: (payload: { userId: number }) => Promise<void>;
+  acceptRequest: (userId: number, requestId: number) => Promise<void>;
+  rejectRequest: (userId: number, requestId: number) => Promise<void>;
 }
 
 export const useGraphStore = create<GraphState>((set, get) => ({
@@ -49,5 +51,18 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   },
   applyGraphUpdate: async ({ userId }) => {
     await get().refreshGraph(userId);
+  },
+  acceptRequest: async (userId, requestId) => {
+    await api.post('/relationships/accept', { userId, requestId });
+    set((state) => ({
+      requests: state.requests.filter((request) => request.id !== requestId),
+    }));
+    await get().refreshGraph(userId);
+  },
+  rejectRequest: async (userId, requestId) => {
+    await api.post('/relationships/reject', { userId, requestId });
+    set((state) => ({
+      requests: state.requests.filter((request) => request.id !== requestId),
+    }));
   },
 }));
