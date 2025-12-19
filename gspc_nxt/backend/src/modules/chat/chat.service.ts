@@ -84,7 +84,7 @@ export class ChatService {
         .execute();
     }
 
-    this.graphEvents.emitNewMessage({ toId, fromId });
+    this.graphEvents.emitNewMessage({ toId, fromId, id: msg.id });
   }
 
   async syncReadReceipts(userId: number): Promise<ReadReceipt[]> {

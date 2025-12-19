@@ -17,3 +17,12 @@ export const RELATIONSHIP_COLORS: Record<string, string> = {
   BEEFING: '#ef4444',
   CRUSH: '#a855f7',
 };
+
+export const RELATIONSHIP_PARTICLES: Record<string, boolean> = {
+  DATING: true,
+  BEST_FRIEND: true,
+  BROTHER: true,
+  SISTER: true,
+  BEEFING: true,
+  CRUSH: true,
+};
