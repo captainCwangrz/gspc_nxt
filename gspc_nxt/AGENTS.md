@@ -72,9 +72,4 @@ Use this table to find where to put the logic from the legacy files.
 | **`dashboard.php`** | Main Protected View | **`frontend/src/pages/DashboardPage.tsx`** |
 | **`index.php`** | Login Entry | **`frontend/src/pages/LoginPage.tsx`** |
 
-## 5. Technical Requirements
 
-* **Backend:** NestJS (Node v20+), TypeORM, MySQL 8.0, Redis.
-* **Frontend:** React (Vite), TypeScript, Tailwind (optional but recommended for HUD).
-
-* **Assets:** The setup script has copied avatars to `frontend/public/assets/`. Ensure your R3F components load textures from there.
