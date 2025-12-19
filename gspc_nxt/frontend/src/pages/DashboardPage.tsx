@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chat } from '../components/Chat';
 import { HUD } from '../components/HUD';
+import { ProfilePanel } from '../components/ProfilePanel';
+import { SearchBar } from '../components/SearchBar';
 import { WorldGraph } from '../components/WorldGraph';
 import { getSocket } from '../lib/socket';
 import { useChatStore } from '../stores/useChatStore';
@@ -17,6 +19,7 @@ export const DashboardPage = () => {
   const handleIncomingMessage = useChatStore((state) => state.handleIncomingMessage);
   const [selectedPeerId, setSelectedPeerId] = useState<number | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [focusNodeId, setFocusNodeId] = useState<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,10 +66,16 @@ export const DashboardPage = () => {
     setIsChatOpen(false);
   };
 
+  const handleFocusNode = (nodeId: number) => {
+    setFocusNodeId(nodeId);
+  };
+
   return (
     <div className="dashboard">
       <main className="dashboard-main">
-        <WorldGraph onSelectNode={handleSelectNode} />
+        <WorldGraph onSelectNode={handleSelectNode} focusNodeId={focusNodeId} />
+        <SearchBar onFocusNode={handleFocusNode} />
+        <ProfilePanel onZoomSelf={() => (userId ? handleFocusNode(userId) : null)} />
         <HUD onOpenChat={handleOpenChat} />
         <Chat
           userId={userId ?? 0}

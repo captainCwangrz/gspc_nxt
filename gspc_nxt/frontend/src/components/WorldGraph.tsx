@@ -6,9 +6,10 @@ import { useGraphStore } from '../stores/useGraphStore';
 
 interface WorldGraphProps {
   onSelectNode?: (nodeId: number | null) => void;
+  focusNodeId?: number | null;
 }
 
-export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
+export const WorldGraph = ({ onSelectNode, focusNodeId }: WorldGraphProps) => {
   const graphRef = useRef<ForceGraph3D>(null);
   const nodes = useGraphStore((state) => state.nodes);
   const links = useGraphStore((state) => state.links);
@@ -83,15 +84,22 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
       ring.rotation.x = Math.PI / 2;
       group.add(ring);
 
-      const labelSprite = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: new THREE.CanvasTexture(createLabelCanvas(node.name ?? '')),
+      const labelTexture = new THREE.CanvasTexture(createLabelCanvas(node.name ?? ''));
+      labelTexture.needsUpdate = true;
+      const labelPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(11, 2.8),
+        new THREE.MeshBasicMaterial({
+          map: labelTexture,
           transparent: true,
+          depthWrite: false,
         }),
       );
-      labelSprite.position.set(0, -6.2, 0);
-      labelSprite.scale.set(10.5, 2.6, 1);
-      group.add(labelSprite);
+      labelPlane.position.set(0, -6.4, 0);
+      labelPlane.renderOrder = 2;
+      labelPlane.onBeforeRender = (_renderer, _scene, camera) => {
+        labelPlane.quaternion.copy(camera.quaternion);
+      };
+      group.add(labelPlane);
 
       return group;
     };
@@ -191,61 +199,100 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!graphRef.current) {
-        return;
+    const pressedKeys = new Set<string>();
+    let frameId = 0;
+    let lastTime = performance.now();
+
+    const animate = (time: number) => {
+      if (graphRef.current && pressedKeys.size > 0) {
+        const camera = graphRef.current.camera();
+        const controls = graphRef.current.controls();
+        const forward = new THREE.Vector3();
+        camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+
+        const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+        const movement = new THREE.Vector3();
+        if (pressedKeys.has('w')) {
+          movement.add(forward);
+        }
+        if (pressedKeys.has('s')) {
+          movement.sub(forward);
+        }
+        if (pressedKeys.has('a')) {
+          movement.sub(right);
+        }
+        if (pressedKeys.has('d')) {
+          movement.add(right);
+        }
+
+        if (movement.lengthSq() > 0) {
+          const delta = (time - lastTime) / 1000;
+          const speed = 40;
+          movement.normalize().multiplyScalar(speed * delta);
+          camera.position.add(movement);
+          if (controls) {
+            controls.target.add(movement);
+            controls.update();
+          }
+        }
       }
+      lastTime = time;
+      frameId = requestAnimationFrame(animate);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
         return;
       }
-
       const key = event.key.toLowerCase();
-      if (!['w', 'a', 's', 'd'].includes(key)) {
-        return;
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        pressedKeys.add(key);
       }
+    };
 
-      const camera = graphRef.current.camera();
-      const controls = graphRef.current.controls();
-      const forward = new THREE.Vector3();
-      camera.getWorldDirection(forward);
-      forward.y = 0;
-      forward.normalize();
-
-      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
-      const speed = 6;
-      const movement = new THREE.Vector3();
-
-      if (key === 'w') {
-        movement.add(forward);
-      }
-      if (key === 's') {
-        movement.sub(forward);
-      }
-      if (key === 'a') {
-        movement.sub(right);
-      }
-      if (key === 'd') {
-        movement.add(right);
-      }
-
-      if (movement.lengthSq() === 0) {
-        return;
-      }
-
-      movement.normalize().multiplyScalar(speed);
-      camera.position.add(movement);
-      if (controls) {
-        controls.target.add(movement);
-        controls.update();
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        pressedKeys.delete(key);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    frameId = requestAnimationFrame(animate);
+
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      cancelAnimationFrame(frameId);
     };
   }, []);
+
+  useEffect(() => {
+    if (!graphRef.current || !focusNodeId) {
+      return;
+    }
+    const node = nodes.find((item) => item.id === focusNodeId) as
+      | (typeof nodes)[number] & { x?: number; y?: number; z?: number }
+      | undefined;
+    if (!node || node.x == null || node.y == null || node.z == null) {
+      return;
+    }
+    const distance = 60;
+    const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+    graphRef.current.cameraPosition(
+      {
+        x: node.x * distRatio,
+        y: node.y * distRatio,
+        z: node.z * distRatio,
+      },
+      node,
+      900,
+    );
+  }, [focusNodeId, nodes]);
 
   return (
     <div className="world-graph">

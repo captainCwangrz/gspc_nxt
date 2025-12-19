@@ -39,6 +39,7 @@ interface GraphState {
   requestRelationship: (userId: number, toId: number, type: string) => Promise<void>;
   updateRelationship: (userId: number, toId: number, type: string) => Promise<void>;
   removeRelationship: (userId: number, toId: number) => Promise<void>;
+  updateSignature: (userId: number, signature: string) => Promise<string | null>;
 }
 
 export const useGraphStore = create<GraphState>((set, get) => ({
@@ -84,5 +85,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   removeRelationship: async (userId, toId) => {
     await api.post('/relationships/remove', { userId, toId });
     await get().refreshGraph(userId);
+  },
+  updateSignature: async (userId, signature) => {
+    const response = await api.post('/users/signature', { userId, signature });
+    await get().refreshGraph(userId);
+    return response.data?.signature ?? null;
   },
 }));
