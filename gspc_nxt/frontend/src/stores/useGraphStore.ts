@@ -10,6 +10,12 @@ export interface GraphNode {
   signature: string;
   val: number;
   last_msg_id: number;
+  x?: number;
+  y?: number;
+  z?: number;
+  fx?: number | null;
+  fy?: number | null;
+  fz?: number | null;
 }
 
 export interface GraphLink {
@@ -40,6 +46,7 @@ interface GraphState {
   updateRelationship: (userId: number, toId: number, type: string) => Promise<void>;
   removeRelationship: (userId: number, toId: number) => Promise<void>;
   updateSignature: (userId: number, signature: string) => Promise<string | null>;
+  updateNodePosition: (nodeId: number, position: { x: number; y: number; z: number }) => void;
 }
 
 export const useGraphStore = create<GraphState>((set, get) => ({
@@ -52,10 +59,20 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       params: { userId, lastUpdate: get().lastUpdate ?? undefined },
     });
     const { nodes, links, requests, lastUpdate } = response.data;
-    const normalizedNodes = (nodes as GraphNode[]).map((node) => ({
-      ...node,
-      avatar: resolveAssetUrl(node.avatar),
-    }));
+    const existingNodes = get().nodes;
+    const normalizedNodes = (nodes as GraphNode[]).map((node) => {
+      const existing = existingNodes.find((item) => item.id === node.id);
+      return {
+        ...node,
+        avatar: resolveAssetUrl(node.avatar),
+        x: existing?.x ?? node.x,
+        y: existing?.y ?? node.y,
+        z: existing?.z ?? node.z,
+        fx: existing?.fx ?? node.fx ?? null,
+        fy: existing?.fy ?? node.fy ?? null,
+        fz: existing?.fz ?? node.fz ?? null,
+      };
+    });
     set({ nodes: normalizedNodes, links, requests, lastUpdate });
   },
   applyGraphUpdate: async ({ userId }) => {
@@ -90,5 +107,22 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     const response = await api.post('/users/signature', { userId, signature });
     await get().refreshGraph(userId);
     return response.data?.signature ?? null;
+  },
+  updateNodePosition: (nodeId, position) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              x: position.x,
+              y: position.y,
+              z: position.z,
+              fx: position.x,
+              fy: position.y,
+              fz: position.z,
+            }
+          : node,
+      ),
+    }));
   },
 }));
