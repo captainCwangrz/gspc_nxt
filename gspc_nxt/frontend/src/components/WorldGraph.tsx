@@ -54,6 +54,20 @@ const DUST_FRAGMENT_SHADER = `
 const getNodeId = (value: number | { id: number }) =>
   typeof value === 'number' ? value : value.id;
 
+const toVector3 = (point: unknown) => {
+  if (point instanceof THREE.Vector3) {
+    return point;
+  }
+  if (!point || typeof point !== 'object') {
+    return null;
+  }
+  const { x, y, z } = point as { x?: number; y?: number; z?: number };
+  if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') {
+    return null;
+  }
+  return new THREE.Vector3(x, y, z);
+};
+
 const getVisibleNetwork = (
   nodes: { id: number }[],
   links: { source: number | { id: number }; target: number | { id: number } }[],
@@ -562,12 +576,19 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
           if (!obj) {
             return true;
           }
-          const distance = start.distanceTo(end);
+          const startVec = toVector3(start);
+          const endVec = toVector3(end);
+          if (!startVec || !endVec) {
+            return true;
+          }
+          const distance = startVec.distanceTo(endVec);
           const midpoint = new THREE.Vector3()
-            .addVectors(start, end)
+            .addVectors(startVec, endVec)
             .multiplyScalar(0.5);
           obj.position.copy(midpoint);
-          const direction = new THREE.Vector3().subVectors(end, start).normalize();
+          const direction = new THREE.Vector3()
+            .subVectors(endVec, startVec)
+            .normalize();
           obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
           obj.scale.set(1, 1, distance);
 
