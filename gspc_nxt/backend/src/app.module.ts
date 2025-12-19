@@ -6,6 +6,7 @@ import { GraphEventsModule } from './modules/events/graph-events.module';
 import { GraphModule } from './modules/graph/graph.module';
 import { RelationshipsModule } from './modules/relationships/relationships.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
 import { Message } from './modules/chat/message.entity';
 import { ReadReceipt } from './modules/chat/read-receipt.entity';
 import { Relationship } from './modules/relationships/relationship.entity';
@@ -42,6 +43,7 @@ import { HealthController } from './health.controller';
     GraphModule,
     RelationshipsModule,
     ChatModule,
+    UsersModule,
   ],
   controllers: [HealthController],
 })
