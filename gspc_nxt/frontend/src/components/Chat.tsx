@@ -5,9 +5,11 @@ import { useGraphStore } from '../stores/useGraphStore';
 interface ChatProps {
   userId: number;
   toId: number | null;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export const Chat = ({ userId, toId }: ChatProps) => {
+export const Chat = ({ userId, toId, isOpen, onClose }: ChatProps) => {
   const [message, setMessage] = useState('');
   const nodes = useGraphStore((state) => state.nodes);
   const conversations = useChatStore((state) => state.conversations);
@@ -51,8 +53,12 @@ export const Chat = ({ userId, toId }: ChatProps) => {
     setMessage('');
   };
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <section className="chat">
+    <section className="chat chat-popout">
       <header className="chat-header">
         <div>
           <h2>Direct Message</h2>
@@ -62,9 +68,14 @@ export const Chat = ({ userId, toId }: ChatProps) => {
               : 'Select a node to start chatting.'}
           </p>
         </div>
-        {toId && unreadCounts[toId] ? (
-          <span className="chat-unread">{unreadCounts[toId]} new</span>
-        ) : null}
+        <div className="chat-header-actions">
+          {toId && unreadCounts[toId] ? (
+            <span className="chat-unread">{unreadCounts[toId]} new</span>
+          ) : null}
+          <button type="button" className="icon-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
       </header>
       <div className="chat-log">
         {toId ? (

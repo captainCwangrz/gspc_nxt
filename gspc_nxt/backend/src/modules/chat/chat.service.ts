@@ -120,8 +120,16 @@ export class ChatService {
     }
 
     const cappedLimit = limit <= 0 || limit > 50 ? 50 : limit;
+    const selectFields = [
+      'message.id AS id',
+      'message.from_id AS from_id',
+      'message.to_id AS to_id',
+      'message.message AS message',
+      'message.timestamp AS timestamp',
+    ];
     const baseQuery = this.messageRepo
       .createQueryBuilder('message')
+      .select(selectFields)
       .where('message.from_id = :userId AND message.to_id = :toId', {
         userId,
         toId,
@@ -129,6 +137,7 @@ export class ChatService {
 
     const reverseQuery = this.messageRepo
       .createQueryBuilder('message')
+      .select(selectFields)
       .where('message.from_id = :toId AND message.to_id = :userId', {
         userId,
         toId,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AVATAR_OPTIONS } from '../lib/constants';
+import { resolveAssetUrl } from '../lib/assets';
 import { useUserStore } from '../stores/useUserStore';
 
 export const LoginPage = () => {
@@ -19,6 +20,27 @@ export const LoginPage = () => {
   const login = useUserStore((state) => state.login);
   const register = useUserStore((state) => state.register);
   const navigate = useNavigate();
+
+  const passwordChecks = [
+    {
+      label: 'At least 8 characters',
+      valid: registerData.password.length >= 8,
+    },
+    {
+      label: 'One uppercase letter',
+      valid: /[A-Z]/.test(registerData.password),
+    },
+    {
+      label: 'One number',
+      valid: /\d/.test(registerData.password),
+    },
+    {
+      label: 'Passwords match',
+      valid:
+        registerData.password.length > 0 &&
+        registerData.password === registerData.confirmPassword,
+    },
+  ];
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -57,27 +79,26 @@ export const LoginPage = () => {
       <div className="login-hero">
         <h1>Gossip Chain</h1>
         <p>
-          Enter the next-gen gossip network. Build constellations, see live activity,
-          and keep your inner circle in sync.
+          A sleek social galaxy where whispers light up your constellation in real time.
         </p>
         <ul>
-          <li>Real-time relationship graph updates</li>
-          <li>Direct messages with read receipts</li>
-          <li>Unified requests + notifications hub</li>
+          <li>Live constellations with instant updates</li>
+          <li>Private chat with read receipts</li>
+          <li>Pop-up notifications and relationship requests</li>
         </ul>
       </div>
       <div className="login-card">
-        <form className="card" onSubmit={handleSubmit}>
+        <form className="card glass-card" onSubmit={handleSubmit}>
           <div className="card-header">
             <h2>Sign In</h2>
-            <p>Welcome back. Stay connected.</p>
+            <p>Jump back into your gossip sphere.</p>
           </div>
           <label>
             Username
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="Enter username"
+              placeholder="Username"
               required
             />
           </label>
@@ -87,17 +108,17 @@ export const LoginPage = () => {
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter password"
+              placeholder="Password"
               required
             />
           </label>
-          <button type="submit">Login</button>
+          <button type="submit">Sign In</button>
         </form>
         <div className="divider">OR</div>
-        <form className="card" onSubmit={handleRegister}>
+        <form className="card glass-card" onSubmit={handleRegister}>
           <div className="card-header">
-            <h2>Register</h2>
-            <p>Join the constellation. Create your profile.</p>
+            <h2>Create Account</h2>
+            <p>Start your profile with a few quick details.</p>
           </div>
           <label>
             Real Name
@@ -106,7 +127,7 @@ export const LoginPage = () => {
               onChange={(event) =>
                 setRegisterData((prev) => ({ ...prev, realName: event.target.value }))
               }
-              placeholder="Enter your real name"
+              placeholder="Your name"
               required
             />
           </label>
@@ -128,7 +149,7 @@ export const LoginPage = () => {
               onChange={(event) =>
                 setRegisterData((prev) => ({ ...prev, username: event.target.value }))
               }
-              placeholder="Choose a username"
+              placeholder="Choose a handle"
               required
             />
           </label>
@@ -156,6 +177,17 @@ export const LoginPage = () => {
               required
             />
           </label>
+          <div className="password-checklist">
+            <span>Password checklist</span>
+            <ul>
+              {passwordChecks.map((item) => (
+                <li key={item.label} className={item.valid ? 'valid' : 'invalid'}>
+                  <span>{item.valid ? '✓' : '•'}</span>
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </div>
           <div className="avatar-select">
             <span>Select Avatar</span>
             <div className="avatar-options">
@@ -170,7 +202,7 @@ export const LoginPage = () => {
                     setRegisterData((prev) => ({ ...prev, avatar }))
                   }
                 >
-                  <img src={`assets/${avatar}`} alt={`Avatar ${avatar}`} />
+                  <img src={resolveAssetUrl(`assets/${avatar}`)} alt={`Avatar ${avatar}`} />
                 </button>
               ))}
             </div>
