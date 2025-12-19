@@ -69,12 +69,6 @@ export const DashboardPage = () => {
 
   return (
     <div className="dashboard">
-      <header>
-        <div>
-          <h1>Gossip Sphere</h1>
-          <p>Track the latest whispers across your social constellation.</p>
-        </div>
-      </header>
       <main className="dashboard-main">
         <WorldGraph onSelectNode={handleSelectNode} />
         <HUD onOpenChat={handleOpenChat} />

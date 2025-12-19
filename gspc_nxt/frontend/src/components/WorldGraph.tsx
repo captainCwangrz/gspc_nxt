@@ -22,6 +22,25 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
   );
 
   const textureLoader = useMemo(() => new THREE.TextureLoader(), []);
+  const starTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return new THREE.Texture(canvas);
+    }
+    const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.35, 'rgba(255, 255, 255, 0.7)');
+    gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.35)');
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 64, 64);
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+    return texture;
+  }, []);
 
   const createLabelCanvas = (label: string) => {
     const canvas = document.createElement('canvas');
@@ -90,6 +109,13 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
       const geometry = new THREE.BufferGeometry();
       const positions = new Float32Array(count * 3);
       const colors = new Float32Array(count * 3);
+      const palette = [
+        new THREE.Color('#f8fafc'),
+        new THREE.Color('#bae6fd'),
+        new THREE.Color('#fef3c7'),
+        new THREE.Color('#fbcfe8'),
+        new THREE.Color('#c7d2fe'),
+      ];
 
       for (let i = 0; i < count; i += 1) {
         const radius = THREE.MathUtils.randFloat(250, 1200);
@@ -100,10 +126,12 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
         positions[index + 1] = radius * Math.sin(theta) * Math.sin(phi);
         positions[index + 2] = radius * Math.cos(theta);
 
-        const tint = THREE.MathUtils.randFloat(0.6, 1);
-        colors[index] = tint;
-        colors[index + 1] = tint;
-        colors[index + 2] = THREE.MathUtils.randFloat(0.8, 1);
+        const color = palette[Math.floor(Math.random() * palette.length)].clone();
+        const boost = THREE.MathUtils.randFloat(0.65, 1.2);
+        color.multiplyScalar(boost);
+        colors[index] = color.r;
+        colors[index + 1] = color.g;
+        colors[index + 2] = color.b;
       }
 
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -111,10 +139,14 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
 
       const material = new THREE.PointsMaterial({
         size,
+        map: starTexture,
+        alphaMap: starTexture,
+        sizeAttenuation: true,
         vertexColors: true,
         transparent: true,
         opacity,
         depthWrite: false,
+        blending: THREE.AdditiveBlending,
       });
 
       return new THREE.Points(geometry, material);
@@ -188,6 +220,9 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
               1200,
             );
           }
+        }}
+        onBackgroundClick={() => {
+          onSelectNode?.(null);
         }}
       />
     </div>
