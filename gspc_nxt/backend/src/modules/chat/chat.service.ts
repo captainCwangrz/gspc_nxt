@@ -100,13 +100,10 @@ export class ChatService {
       return;
     }
 
-    await this.readReceiptRepo
-      .createQueryBuilder()
-      .insert()
-      .into(ReadReceipt)
-      .values({ userId, peerId, lastReadMsgId })
-      .orUpdate(['last_read_msg_id'], ['user_id', 'peer_id'])
-      .execute();
+    await this.readReceiptRepo.upsert(
+      { userId, peerId, lastReadMsgId },
+      ['userId', 'peerId'],
+    );
   }
 
   async retrieveMessages(

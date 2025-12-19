@@ -76,141 +76,139 @@ export const LoginPage = () => {
 
   return (
     <div className="login-page">
-      <div className="login-hero">
-        <h1>Gossip Chain</h1>
-        <p>
-          A sleek social galaxy where whispers light up your constellation in real time.
-        </p>
-        <ul>
-          <li>Live constellations with instant updates</li>
-          <li>Private chat with read receipts</li>
-          <li>Pop-up notifications and relationship requests</li>
-        </ul>
-      </div>
       <div className="login-card">
-        <form className="card glass-card" onSubmit={handleSubmit}>
-          <div className="card-header">
-            <h2>Sign In</h2>
-            <p>Jump back into your gossip sphere.</p>
-          </div>
-          <label>
-            Username
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="Username"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
-              required
-            />
-          </label>
-          <button type="submit">Sign In</button>
-        </form>
-        <div className="divider">OR</div>
-        <form className="card glass-card" onSubmit={handleRegister}>
-          <div className="card-header">
-            <h2>Create Account</h2>
-            <p>Start your profile with a few quick details.</p>
-          </div>
-          <label>
-            Real Name
-            <input
-              value={registerData.realName}
-              onChange={(event) =>
-                setRegisterData((prev) => ({ ...prev, realName: event.target.value }))
-              }
-              placeholder="Your name"
-              required
-            />
-          </label>
-          <label>
-            Date of Birth
-            <input
-              type="date"
-              value={registerData.dob}
-              onChange={(event) =>
-                setRegisterData((prev) => ({ ...prev, dob: event.target.value }))
-              }
-              required
-            />
-          </label>
-          <label>
-            Username
-            <input
-              value={registerData.username}
-              onChange={(event) =>
-                setRegisterData((prev) => ({ ...prev, username: event.target.value }))
-              }
-              placeholder="Choose a handle"
-              required
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={registerData.password}
-              onChange={(event) =>
-                setRegisterData((prev) => ({ ...prev, password: event.target.value }))
-              }
-              placeholder="Create a password"
-              required
-            />
-          </label>
-          <label>
-            Confirm Password
-            <input
-              type="password"
-              value={registerData.confirmPassword}
-              onChange={(event) =>
-                setRegisterData((prev) => ({ ...prev, confirmPassword: event.target.value }))
-              }
-              placeholder="Confirm your password"
-              required
-            />
-          </label>
-          <div className="password-checklist">
-            <span>Password checklist</span>
-            <ul>
-              {passwordChecks.map((item) => (
-                <li key={item.label} className={item.valid ? 'valid' : 'invalid'}>
-                  <span>{item.valid ? '✓' : '•'}</span>
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="avatar-select">
-            <span>Select Avatar</span>
-            <div className="avatar-options">
-              {AVATAR_OPTIONS.map((avatar) => (
-                <button
-                  key={avatar}
-                  type="button"
-                  className={
-                    registerData.avatar === avatar ? 'avatar active' : 'avatar'
-                  }
-                  onClick={() =>
-                    setRegisterData((prev) => ({ ...prev, avatar }))
-                  }
-                >
-                  <img src={resolveAssetUrl(`assets/${avatar}`)} alt={`Avatar ${avatar}`} />
-                </button>
-              ))}
+        <header className="login-header">
+          <h1>Gossip Chain</h1>
+          <p>Sign in or create an account to enter the constellation.</p>
+        </header>
+        <div className="login-stack">
+          <form className="card glass-card" onSubmit={handleSubmit}>
+            <div className="card-header">
+              <h2>Sign In</h2>
+              <p>Welcome back.</p>
             </div>
-          </div>
-          <button type="submit" className="secondary">
-            Create Account
-          </button>
-        </form>
+            <label>
+              Username
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Username"
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Password"
+                required
+              />
+            </label>
+            <button type="submit">Sign In</button>
+          </form>
+          <form className="card glass-card" onSubmit={handleRegister}>
+            <div className="card-header">
+              <h2>Create Account</h2>
+              <p>Quick setup and you are in.</p>
+            </div>
+            <label>
+              Real Name
+              <input
+                value={registerData.realName}
+                onChange={(event) =>
+                  setRegisterData((prev) => ({ ...prev, realName: event.target.value }))
+                }
+                placeholder="Your name"
+                required
+              />
+            </label>
+            <div className="login-row">
+              <label>
+                Date of Birth
+                <input
+                  type="date"
+                  value={registerData.dob}
+                  onChange={(event) =>
+                    setRegisterData((prev) => ({ ...prev, dob: event.target.value }))
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Username
+                <input
+                  value={registerData.username}
+                  onChange={(event) =>
+                    setRegisterData((prev) => ({ ...prev, username: event.target.value }))
+                  }
+                  placeholder="Handle"
+                  required
+                />
+              </label>
+            </div>
+            <label>
+              Password
+              <input
+                type="password"
+                value={registerData.password}
+                onChange={(event) =>
+                  setRegisterData((prev) => ({ ...prev, password: event.target.value }))
+                }
+                placeholder="Create a password"
+                required
+              />
+            </label>
+            <label>
+              Confirm Password
+              <input
+                type="password"
+                value={registerData.confirmPassword}
+                onChange={(event) =>
+                  setRegisterData((prev) => ({ ...prev, confirmPassword: event.target.value }))
+                }
+                placeholder="Confirm your password"
+                required
+              />
+            </label>
+            <div className="password-checklist compact">
+              <ul>
+                {passwordChecks.map((item) => (
+                  <li key={item.label} className={item.valid ? 'valid' : 'invalid'}>
+                    <span>{item.valid ? '✓' : '•'}</span>
+                    {item.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="avatar-select">
+              <span>Select Avatar</span>
+              <div className="avatar-options">
+                {AVATAR_OPTIONS.map((avatar) => (
+                  <button
+                    key={avatar}
+                    type="button"
+                    className={
+                      registerData.avatar === avatar ? 'avatar active' : 'avatar'
+                    }
+                    onClick={() =>
+                      setRegisterData((prev) => ({ ...prev, avatar }))
+                    }
+                  >
+                    <img
+                      src={resolveAssetUrl(`assets/${avatar}`)}
+                      alt={`Avatar ${avatar}`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="submit" className="secondary">
+              Create Account
+            </button>
+          </form>
+        </div>
         {error ? <p className="form-message error">{error}</p> : null}
         {success ? <p className="form-message success">{success}</p> : null}
       </div>

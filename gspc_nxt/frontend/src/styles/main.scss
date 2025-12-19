@@ -8,60 +8,59 @@ body {
 .login-page {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.1fr);
-  gap: 3rem;
-  padding: 3rem 5vw;
-  align-items: center;
-
-  @media (max-width: 960px) {
-    grid-template-columns: 1fr;
-  }
+  place-items: center;
+  padding: 2.5rem 1.5rem;
 }
 
-.login-hero {
+.login-card {
+  width: min(820px, 100%);
+  display: grid;
+  gap: 1.25rem;
+}
+
+.login-header {
+  text-align: center;
+
   h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    margin: 0;
+    font-size: 2.2rem;
   }
 
   p {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: #cbd5f5;
-  }
-
-  ul {
-    margin-top: 2rem;
-    padding-left: 1.2rem;
-    display: grid;
-    gap: 0.75rem;
+    margin: 0.4rem 0 0;
     color: #94a3b8;
   }
 }
 
-.login-card {
+.login-stack {
   display: grid;
-  gap: 1.5rem;
+  gap: 1rem;
+}
+
+.login-row {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .card {
-  background: rgba(15, 23, 42, 0.78);
-  border-radius: 16px;
-  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
   border: 1px solid rgba(148, 163, 184, 0.15);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.45);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.35);
 
   label {
     display: grid;
-    gap: 0.4rem;
+    gap: 0.35rem;
     font-size: 0.9rem;
     color: #cbd5f5;
   }
 
   input {
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.85rem;
     border-radius: 10px;
     border: 1px solid transparent;
     background: rgba(15, 23, 42, 0.8);
@@ -75,7 +74,7 @@ body {
   }
 
   button {
-    padding: 0.75rem 1.5rem;
+    padding: 0.65rem 1.25rem;
     border-radius: 10px;
     border: none;
     background: linear-gradient(135deg, #6366f1, #38bdf8);
@@ -113,8 +112,8 @@ body {
 
 .password-checklist {
   display: grid;
-  gap: 0.35rem;
-  font-size: 0.85rem;
+  gap: 0.25rem;
+  font-size: 0.8rem;
   color: #94a3b8;
 
   ul {
@@ -140,6 +139,10 @@ body {
   }
 }
 
+.password-checklist.compact {
+  margin-top: -0.25rem;
+}
+
 .avatar-select {
   display: grid;
   gap: 0.5rem;
@@ -149,6 +152,7 @@ body {
 .avatar-options {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .avatar {
@@ -218,15 +222,15 @@ body {
   display: grid;
   gap: 1rem;
   z-index: 10;
-  max-width: 320px;
+  max-width: 280px;
 }
 
 .notif-stack {
-  background: rgba(15, 23, 42, 0.85);
-  border-radius: 16px;
-  padding: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  background: rgba(8, 10, 24, 0.7);
+  border-radius: 14px;
+  padding: 0.85rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.28);
 }
 
 .notif-header {
@@ -243,10 +247,10 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(30, 41, 59, 0.6);
-  padding: 0.65rem 0.75rem;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(30, 41, 59, 0.45);
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
   color: inherit;
   cursor: pointer;
 
@@ -338,20 +342,20 @@ body {
 }
 
 .chat {
-  background: rgba(15, 23, 42, 0.85);
-  border-radius: 16px;
-  padding: 1.25rem;
+  background: rgba(12, 14, 28, 0.85);
+  border-radius: 14px;
+  padding: 0.9rem;
   height: fit-content;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.28);
 }
 
 .chat-popout {
   position: absolute;
   right: var(--hud-gutter);
   top: var(--hud-gutter);
-  width: min(360px, 90vw);
-  max-height: 70vh;
+  width: min(320px, 90vw);
+  max-height: 62vh;
   display: grid;
   grid-template-rows: auto 1fr auto;
   z-index: 12;
@@ -366,8 +370,8 @@ body {
 .chat-log {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  max-height: 320px;
+  gap: 0.55rem;
+  max-height: 260px;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -379,9 +383,9 @@ body {
 
 .chat-bubble {
   max-width: 75%;
-  padding: 0.6rem 0.9rem;
-  border-radius: 14px;
-  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
   position: relative;
 
   span {
@@ -412,11 +416,11 @@ body {
 .chat-input {
   display: flex;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 
   input {
     flex: 1;
-    padding: 0.6rem 0.75rem;
+    padding: 0.5rem 0.65rem;
     border-radius: 10px;
     border: 1px solid transparent;
     background: rgba(15, 23, 42, 0.8);
@@ -426,7 +430,7 @@ body {
   button {
     border-radius: 10px;
     border: none;
-    padding: 0.6rem 1rem;
+    padding: 0.5rem 0.85rem;
     background: #34d399;
     color: #0f172a;
     font-weight: 600;
@@ -446,171 +450,4 @@ body {
   width: 32px;
   height: 32px;
   cursor: pointer;
-}
-
-.inspector-panel {
-  position: absolute;
-  left: var(--hud-gutter);
-  bottom: var(--hud-gutter);
-  width: min(360px, 90vw);
-  background: rgba(15, 23, 42, 0.85);
-  border-radius: 18px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.45);
-  z-index: 11;
-
-  header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  }
-
-  .panel-title {
-    font-weight: 600;
-  }
-
-  .panel-subtitle {
-    display: block;
-    font-size: 0.8rem;
-    color: #94a3b8;
-  }
-}
-
-.inspector-body {
-  padding: 1.25rem;
-  display: grid;
-  gap: 0.9rem;
-}
-
-.inspector-profile {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-
-  img {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
-  h3 {
-    margin: 0;
-  }
-
-  p {
-    margin: 0.2rem 0;
-    color: #94a3b8;
-  }
-
-  span {
-    font-size: 0.75rem;
-    color: #64748b;
-  }
-}
-
-.signature {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #cbd5f5;
-}
-
-.inspector-stats {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-
-  div {
-    background: rgba(30, 41, 59, 0.6);
-    border-radius: 12px;
-    padding: 0.6rem 0.75rem;
-    flex: 1;
-  }
-
-  span {
-    display: block;
-    font-size: 0.75rem;
-    color: #94a3b8;
-  }
-
-  strong {
-    display: block;
-    margin-top: 0.25rem;
-  }
-}
-
-.status-badges {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.status-badge {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  background: rgba(30, 41, 59, 0.5);
-  padding: 0.4rem 0.6rem;
-  border-radius: 999px;
-}
-
-.mutual-crush {
-  text-align: center;
-  padding: 0.4rem 0.6rem;
-  background: rgba(236, 72, 153, 0.2);
-  border-radius: 999px;
-  color: #f472b6;
-  font-weight: 600;
-}
-
-.inspector-actions {
-  display: flex;
-  gap: 0.5rem;
-
-  button {
-    flex: 1;
-    border: none;
-    border-radius: 999px;
-    padding: 0.5rem 0.75rem;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .danger {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fecaca;
-  }
-}
-
-.inspector-form {
-  display: grid;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-
-  select {
-    flex: 1;
-    background: rgba(15, 23, 42, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    color: #e2e8f0;
-    border-radius: 10px;
-    padding: 0.5rem 0.75rem;
-  }
-
-  button {
-    border: none;
-    border-radius: 10px;
-    padding: 0.55rem 0.9rem;
-    background: #22c55e;
-    color: #0f172a;
-    font-weight: 600;
-    cursor: pointer;
-  }
-}
-
-.form-row {
-  display: flex;
-  gap: 0.5rem;
 }
