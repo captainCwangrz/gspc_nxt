@@ -10,7 +10,6 @@
 ```text
 / (Project Root)
 ├── AGENTS.md            <-- You are reading this
-├── setup_env.sh         <-- Script to scaffold V2 environment
 ├── gspc_reference/      <-- [READ ONLY] Legacy Source of Truth
 │   ├── api/             <-- Backend Logic (auth, data, relations, messages)
 │   ├── config/          <-- Constants (Relation IDs) & DB Config
@@ -77,4 +76,5 @@ Use this table to find where to put the logic from the legacy files.
 
 * **Backend:** NestJS (Node v20+), TypeORM, MySQL 8.0, Redis.
 * **Frontend:** React (Vite), TypeScript, Tailwind (optional but recommended for HUD).
+
 * **Assets:** The setup script has copied avatars to `frontend/public/assets/`. Ensure your R3F components load textures from there.
