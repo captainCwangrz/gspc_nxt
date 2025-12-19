@@ -155,18 +155,25 @@ export class RelationshipsService {
           )
           .execute();
 
-        const relationship = manager.create(Relationship, {
-          fromId: request.fromId,
-          toId: request.toId,
-          type: RelationType.CRUSH,
+        let relationship = await manager.findOne(Relationship, {
+          where: { fromId: request.fromId, toId: request.toId },
         });
-        await manager
-          .createQueryBuilder()
-          .insert()
-          .into(Relationship)
-          .values(relationship)
-          .orUpdate(['type', 'deleted_at', 'updated_at'], ['from_id', 'to_id', 'type'])
-          .execute();
+
+        if (relationship) {
+          relationship.type = RelationType.CRUSH;
+          relationship.deletedAt = null;
+          relationship.updatedAt = new Date();
+          await manager.save(relationship);
+        } else {
+          relationship = manager.create(Relationship, {
+            fromId: request.fromId,
+            toId: request.toId,
+            type: RelationType.CRUSH,
+            deletedAt: null,
+            updatedAt: new Date(),
+          });
+          await manager.save(relationship);
+        }
       } else {
         await manager
           .createQueryBuilder()
@@ -185,18 +192,25 @@ export class RelationshipsService {
           request.fromId,
           request.toId,
         );
-        const relationship = manager.create(Relationship, {
-          fromId: normFrom,
-          toId: normTo,
-          type: request.type,
+        let relationship = await manager.findOne(Relationship, {
+          where: { fromId: normFrom, toId: normTo },
         });
-        await manager
-          .createQueryBuilder()
-          .insert()
-          .into(Relationship)
-          .values(relationship)
-          .orUpdate(['type', 'deleted_at', 'updated_at'], ['from_id', 'to_id', 'type'])
-          .execute();
+
+        if (relationship) {
+          relationship.type = request.type;
+          relationship.deletedAt = null;
+          relationship.updatedAt = new Date();
+          await manager.save(relationship);
+        } else {
+          relationship = manager.create(Relationship, {
+            fromId: normFrom,
+            toId: normTo,
+            type: request.type,
+            deletedAt: null,
+            updatedAt: new Date(),
+          });
+          await manager.save(relationship);
+        }
       }
     });
 
@@ -233,18 +247,25 @@ export class RelationshipsService {
           )
           .execute();
 
-        const relationship = manager.create(Relationship, {
-          fromId,
-          toId,
-          type: RelationType.CRUSH,
+        let relationship = await manager.findOne(Relationship, {
+          where: { fromId, toId },
         });
-        await manager
-          .createQueryBuilder()
-          .insert()
-          .into(Relationship)
-          .values(relationship)
-          .orUpdate(['type', 'deleted_at', 'updated_at'], ['from_id', 'to_id', 'type'])
-          .execute();
+
+        if (relationship) {
+          relationship.type = RelationType.CRUSH;
+          relationship.deletedAt = null;
+          relationship.updatedAt = new Date();
+          await manager.save(relationship);
+        } else {
+          relationship = manager.create(Relationship, {
+            fromId,
+            toId,
+            type: RelationType.CRUSH,
+            deletedAt: null,
+            updatedAt: new Date(),
+          });
+          await manager.save(relationship);
+        }
         return;
       }
 
@@ -261,18 +282,25 @@ export class RelationshipsService {
         .execute();
 
       const [normFrom, normTo] = normalizeFromTo(type, fromId, toId);
-      const relationship = manager.create(Relationship, {
-        fromId: normFrom,
-        toId: normTo,
-        type,
+        let relationship = await manager.findOne(Relationship, {
+          where: { fromId: normFrom, toId: normTo },
       });
-      await manager
-        .createQueryBuilder()
-        .insert()
-        .into(Relationship)
-        .values(relationship)
-        .orUpdate(['type', 'deleted_at', 'updated_at'], ['from_id', 'to_id', 'type'])
-        .execute();
+
+        if (relationship) {
+          relationship.type = type;
+          relationship.deletedAt = null;
+          relationship.updatedAt = new Date();
+          await manager.save(relationship);
+        } else {
+          relationship = manager.create(Relationship, {
+            fromId: normFrom,
+            toId: normTo,
+            type,
+            deletedAt: null,
+            updatedAt: new Date(),
+          });
+          await manager.save(relationship);
+        }
     });
   }
 

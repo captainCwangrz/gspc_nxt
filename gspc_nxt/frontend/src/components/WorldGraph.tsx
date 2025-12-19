@@ -9,7 +9,7 @@ interface WorldGraphProps {
 }
 
 export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
-  const graphRef = useRef<ForceGraph3D>(null);
+  const graphRef = useRef<any>(null);
   const nodes = useGraphStore((state) => state.nodes);
   const links = useGraphStore((state) => state.links);
 
