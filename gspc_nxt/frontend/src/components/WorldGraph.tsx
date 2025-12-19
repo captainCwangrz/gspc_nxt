@@ -4,13 +4,17 @@ import * as d3 from 'd3-force';
 import * as THREE from 'three';
 import { RELATIONSHIP_COLORS, RELATIONSHIP_PARTICLES } from '../lib/constants';
 import { useGraphStore } from '../stores/useGraphStore';
+import { useUserStore } from '../stores/useUserStore';
 
 interface WorldGraphProps {
   onNodeClick?: (nodeId: number | null) => void;
   focusNodeId?: number | null;
 }
 
-const DUST_VERTEX_SHADER = `
+const STAR_TWINKLE_SPEED = 2.8;
+const STAR_TWINKLE_AMPLITUDE = 0.9;
+
+const buildDustVertexShader = () => `
   uniform float uTime;
   uniform float uPixelRatio;
   attribute vec3 starColor;
@@ -18,28 +22,29 @@ const DUST_VERTEX_SHADER = `
   attribute float phase;
   varying vec3 vColor;
   varying float vOpacity;
-
   void main() {
     vColor = starColor;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
     float projSize = size * (1000.0 / -mvPosition.z) * uPixelRatio;
+
     gl_Position = projectionMatrix * mvPosition;
     gl_PointSize = clamp(projSize, 0.0, 28.0);
 
-    float t = 0.5 + 0.5 * sin(uTime * 2.8 + phase);
+    float t = 0.5 + 0.5 * sin(uTime * ${STAR_TWINKLE_SPEED} + phase);
     float eased = t * t * (3.0 - 2.0 * t);
     float sizeFactor = clamp((size - 3.0) / 24.0, 0.0, 1.0);
     float sizeEase = pow(sizeFactor, 1.05);
-    float scaledAmplitude = 0.9 * mix(0.55, 1.08, sizeEase);
+    float scaledAmplitude = ${STAR_TWINKLE_AMPLITUDE} * mix(0.55, 1.08, sizeEase);
+
     vOpacity = (0.78 + scaledAmplitude * eased);
   }
 `;
 
-const DUST_FRAGMENT_SHADER = `
+const STAR_FRAGMENT_SHADER = `
   uniform float uOpacity;
   varying vec3 vColor;
   varying float vOpacity;
-
   void main() {
     vec2 xy = gl_PointCoord.xy - vec2(0.5);
     float dist = length(xy);
@@ -47,7 +52,8 @@ const DUST_FRAGMENT_SHADER = `
     float halo = smoothstep(0.4, 0.0, dist) * 0.4;
     float alpha = (core + halo);
     vec3 boosted = (vColor + vec3(0.12, 0.12, 0.24) * (halo * 2.0)) * (1.12 + halo * 0.12);
-    gl_FragColor = vec4(boosted * vOpacity, alpha * vOpacity * uOpacity);
+    vec3 finalColor = boosted * vOpacity;
+    gl_FragColor = vec4(finalColor, alpha * vOpacity * uOpacity);
   }
 `;
 
@@ -113,6 +119,8 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
   const graphRef = useRef<ForceGraph3D>(null);
   const nodes = useGraphStore((state) => state.nodes);
   const links = useGraphStore((state) => state.links);
+  const updateNodePosition = useGraphStore((state) => state.updateNodePosition);
+  const userId = useUserStore((state) => state.userId);
 
   const nodeDegrees = useMemo(() => {
     const degreeMap = new Map<number, number>();
@@ -140,7 +148,7 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
     return getVisibleNetwork(nodes, links, focusNodeId);
   }, [focusNodeId, links, nodes]);
 
-  const textureLoader = useMemo(() => new THREE.TextureLoader(), []);
+  const textureCache = useMemo(() => new Map<string, THREE.CanvasTexture>(), []);
   const starTexture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 64;
@@ -161,67 +169,102 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
     return texture;
   }, []);
 
-  const createLabelCanvas = (label: string) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 64;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return canvas;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '600 20px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(56, 189, 248, 0.55)';
-    ctx.shadowBlur = 8;
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillText(label, canvas.width / 2, 34);
-    return canvas;
-  };
-
   const createNodeObject = useMemo(() => {
-    return (node: { avatar?: string; name?: string }) => {
-      const group = new THREE.Group();
-      const avatarTexture = node.avatar
-        ? textureLoader.load(node.avatar)
-        : null;
+    return (node: { id: number; avatar?: string; name?: string }) => {
+      const cacheKey = `${node.avatar ?? ''}|${node.id === userId ? 'self' : 'other'}|${
+        node.name ?? ''
+      }`;
 
-      const spriteMaterial = new THREE.SpriteMaterial({
-        map: avatarTexture ?? undefined,
-        color: avatarTexture ? '#ffffff' : '#93c5fd',
-      });
-      const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.scale.set(6, 6, 1);
-      group.add(sprite);
+      if (!textureCache.has(cacheKey)) {
+        const size = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const texture = new THREE.CanvasTexture(canvas);
 
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(3.5, 4.2, 32),
-        new THREE.MeshBasicMaterial({ color: '#7c3aed', transparent: true, opacity: 0.6 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      group.add(ring);
+        const draw = (img: HTMLImageElement | null) => {
+          if (!ctx) {
+            return;
+          }
+          ctx.clearRect(0, 0, size, size);
 
-      const labelTexture = new THREE.CanvasTexture(createLabelCanvas(node.name ?? ''));
-      labelTexture.needsUpdate = true;
-      const labelPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(11, 2.8),
-        new THREE.MeshBasicMaterial({
-          map: labelTexture,
-          transparent: true,
-          depthWrite: false,
-        }),
-      );
-      labelPlane.position.set(0, -6.4, 0);
-      labelPlane.renderOrder = 2;
-      labelPlane.onBeforeRender = (_renderer, _scene, camera) => {
-        labelPlane.quaternion.copy(camera.quaternion);
-      };
-      group.add(labelPlane);
+          const avatarRadius = size * 0.3;
+          const avatarY = size * 0.4;
 
-      return group;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(size / 2, avatarY, avatarRadius, 0, 2 * Math.PI);
+          ctx.clip();
+
+          if (img) {
+            ctx.drawImage(
+              img,
+              size / 2 - avatarRadius,
+              avatarY - avatarRadius,
+              avatarRadius * 2,
+              avatarRadius * 2,
+            );
+          } else {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(
+              size / 2 - avatarRadius,
+              avatarY - avatarRadius,
+              avatarRadius * 2,
+              avatarRadius * 2,
+            );
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 100px "Noto Sans SC", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText((node.name ?? '').charAt(0).toUpperCase(), size / 2, avatarY);
+          }
+          ctx.restore();
+
+          const name = (node.name ?? '').trim();
+          const baseFontSize = 42;
+          const maxTextWidth = size * 0.9;
+
+          ctx.font = `bold ${baseFontSize}px "Noto Sans SC", sans-serif`;
+          const metrics = ctx.measureText(name);
+          if (metrics.width > maxTextWidth) {
+            const ratio = maxTextWidth / metrics.width;
+            const newFontSize = Math.floor(baseFontSize * ratio);
+            ctx.font = `bold ${newFontSize}px "Noto Sans SC", sans-serif`;
+          }
+
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'white';
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 8;
+          ctx.fillText(name, size / 2, size * 0.85);
+          ctx.shadowBlur = 0;
+
+          texture.needsUpdate = true;
+        };
+
+        if (node.avatar) {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => draw(img);
+          img.onerror = () => draw(null);
+          img.src = node.avatar;
+        }
+
+        draw(null);
+        textureCache.set(cacheKey, texture);
+      }
+
+      const texture = textureCache.get(cacheKey);
+      const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      spriteMat.depthWrite = false;
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.scale.set(50, 50, 1);
+      sprite.renderOrder = 10;
+      return sprite;
     };
-  }, [textureLoader]);
+  }, [textureCache, userId]);
 
   const dustMaterialsRef = useRef<Set<THREE.ShaderMaterial>>(new Set());
 
@@ -282,10 +325,11 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
           uOpacity: { value: 1.0 },
           uPixelRatio: { value: window.devicePixelRatio || 1.0 },
         },
-        vertexShader: DUST_VERTEX_SHADER,
-        fragmentShader: DUST_FRAGMENT_SHADER,
+        vertexShader: buildDustVertexShader(),
+        fragmentShader: STAR_FRAGMENT_SHADER,
         transparent: true,
         depthWrite: false,
+        depthTest: false,
         blending: THREE.AdditiveBlending,
       });
 
@@ -295,10 +339,14 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
       points.name = 'dust-points';
       points.raycast = () => {};
 
-      const container = new THREE.Group();
-      container.name = 'dust-container';
-      container.add(points);
-      return container;
+      const dustContainer = new THREE.Group();
+      dustContainer.name = 'dust-container';
+      dustContainer.add(points);
+
+      const group = new THREE.Group();
+      group.userData.link = link;
+      group.add(dustContainer);
+      return group;
     };
   }, []);
 
@@ -306,6 +354,8 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
     if (!graphRef.current) {
       return;
     }
+
+    graphRef.current.camera().rotation.order = 'YXZ';
 
     const scene = graphRef.current.scene();
     const starGroup = new THREE.Group();
@@ -413,19 +463,30 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
 
   useEffect(() => {
     const pressedKeys = new Set<string>();
+    const unitY = new THREE.Vector3(0, 1, 0);
     let frameId = 0;
     let lastTime = performance.now();
 
+    const isFormFieldActive = () => {
+      const active = document.activeElement;
+      if (!active || !(active instanceof HTMLElement)) {
+        return false;
+      }
+      if (active.isContentEditable) {
+        return true;
+      }
+      return ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
+    };
+
     const animate = (time: number) => {
-      if (graphRef.current && pressedKeys.size > 0) {
+      if (graphRef.current && pressedKeys.size > 0 && !isFormFieldActive()) {
         const camera = graphRef.current.camera();
         const controls = graphRef.current.controls();
         const forward = new THREE.Vector3();
         camera.getWorldDirection(forward);
-        forward.y = 0;
         forward.normalize();
 
-        const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+        const right = new THREE.Vector3().crossVectors(forward, unitY).normalize();
         const movement = new THREE.Vector3();
         if (pressedKeys.has('w')) {
           movement.add(forward);
@@ -446,7 +507,10 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
           movement.normalize().multiplyScalar(speed * delta);
           camera.position.add(movement);
           if (controls) {
-            controls.target.add(movement);
+            const lookTarget = new THREE.Vector3()
+              .copy(camera.position)
+              .add(forward);
+            controls.target.copy(lookTarget);
             controls.update();
           }
         }
@@ -456,8 +520,7 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) {
+      if (isFormFieldActive()) {
         return;
       }
       const key = event.key.toLowerCase();
@@ -550,18 +613,16 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
         ref={graphRef}
         graphData={graphData}
         backgroundColor="#05050f"
-        enableNodeDrag={false}
+        enableNodeDrag
         nodeLabel={(node) => `${node.name} (@${node.username})`}
         nodeAutoColorBy="username"
         nodeThreeObject={createNodeObject}
         nodeVisibility={(node) =>
           visibleNodeIds ? visibleNodeIds.has(node.id as number) : true
         }
-        linkColor={(link) =>
-          RELATIONSHIP_COLORS[link.type as string] ?? 'rgba(148, 163, 184, 0.4)'
-        }
-        linkOpacity={0.18}
-        linkWidth={(link) => (link.type === 'BEEFING' ? 1.4 : 0.8)}
+        linkColor={() => 'rgba(0,0,0,0)'}
+        linkOpacity={0}
+        linkWidth={0}
         linkVisibility={(link) => {
           if (!visibleNodeIds) {
             return true;
@@ -581,28 +642,57 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
           if (!startVec || !endVec) {
             return true;
           }
-          const distance = startVec.distanceTo(endVec);
-          const midpoint = new THREE.Vector3()
-            .addVectors(startVec, endVec)
-            .multiplyScalar(0.5);
-          obj.position.copy(midpoint);
-          const direction = new THREE.Vector3()
-            .subVectors(endVec, startVec)
-            .normalize();
-          obj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), direction);
-          obj.scale.set(1, 1, distance);
+          if (!obj.userData.vStart) {
+            obj.userData.vStart = new THREE.Vector3();
+            obj.userData.vEnd = new THREE.Vector3();
+            obj.userData.dir = new THREE.Vector3();
+          }
 
-          const dustPoints = obj.children.find((child) => child.name === 'dust-points');
-          if (dustPoints && dustPoints instanceof THREE.Points) {
-            const count = Math.min(400, Math.floor(distance * 1.2));
-            dustPoints.geometry.setDrawRange(0, count);
+          const vStart = obj.userData.vStart.copy(startVec);
+          const vEnd = obj.userData.vEnd.copy(endVec);
+          const distance = vStart.distanceTo(vEnd);
+          obj.position.set(
+            startVec.x + (endVec.x - startVec.x) / 2,
+            startVec.y + (endVec.y - startVec.y) / 2,
+            startVec.z + (endVec.z - startVec.z) / 2,
+          );
+
+          const dustContainer = obj.children.find(
+            (child) => child.name === 'dust-container',
+          );
+          if (dustContainer && dustContainer instanceof THREE.Group) {
+            if (distance > 0.001) {
+              const direction = obj.userData.dir.copy(vEnd).sub(vStart).normalize();
+              dustContainer.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 0, 1),
+                direction,
+              );
+              dustContainer.scale.set(1, 1, distance);
+              dustContainer.visible = true;
+
+              const dustPoints = dustContainer.children.find(
+                (child) => child.name === 'dust-points',
+              );
+              if (dustPoints && dustPoints instanceof THREE.Points) {
+                const count = Math.min(400, Math.floor(distance * 1.2));
+                dustPoints.geometry.setDrawRange(0, count);
+              }
+            } else {
+              dustContainer.visible = false;
+              dustContainer.scale.set(0, 0, 0);
+            }
           }
           return true;
         }}
         onNodeClick={(node) => {
           const nodeId = typeof node.id === 'number' ? node.id : null;
           onNodeClick?.(nodeId);
-          if (graphRef.current && node.x && node.y && node.z) {
+          if (
+            graphRef.current &&
+            node.x != null &&
+            node.y != null &&
+            node.z != null
+          ) {
             const distance = 60;
             const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
             graphRef.current.cameraPosition(
@@ -614,6 +704,17 @@ export const WorldGraph = ({ onNodeClick, focusNodeId }: WorldGraphProps) => {
               node,
               1200,
             );
+          }
+        }}
+        onNodeDragEnd={(node) => {
+          if (node.x == null || node.y == null || node.z == null) {
+            return;
+          }
+          node.fx = node.x;
+          node.fy = node.y;
+          node.fz = node.z;
+          if (typeof node.id === 'number') {
+            updateNodePosition(node.id, { x: node.x, y: node.y, z: node.z });
           }
         }}
         onBackgroundClick={() => {
