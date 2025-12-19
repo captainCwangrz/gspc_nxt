@@ -1,5 +1,5 @@
 import ForceGraph3D from 'react-force-graph-3d';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { RELATIONSHIP_COLORS } from '../lib/constants';
 import { useGraphStore } from '../stores/useGraphStore';
@@ -77,6 +77,81 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
     };
   }, [textureLoader]);
 
+  useEffect(() => {
+    if (!graphRef.current) {
+      return;
+    }
+
+    const scene = graphRef.current.scene();
+    const starGroup = new THREE.Group();
+    starGroup.name = 'starfield';
+
+    const createPoints = (count: number, size: number, opacity: number) => {
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      for (let i = 0; i < count; i += 1) {
+        const radius = THREE.MathUtils.randFloat(250, 1200);
+        const theta = Math.acos(THREE.MathUtils.randFloatSpread(2));
+        const phi = THREE.MathUtils.randFloat(0, Math.PI * 2);
+        const index = i * 3;
+        positions[index] = radius * Math.sin(theta) * Math.cos(phi);
+        positions[index + 1] = radius * Math.sin(theta) * Math.sin(phi);
+        positions[index + 2] = radius * Math.cos(theta);
+
+        const tint = THREE.MathUtils.randFloat(0.6, 1);
+        colors[index] = tint;
+        colors[index + 1] = tint;
+        colors[index + 2] = THREE.MathUtils.randFloat(0.8, 1);
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size,
+        vertexColors: true,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+      });
+
+      return new THREE.Points(geometry, material);
+    };
+
+    const stars = createPoints(3000, 1.6, 0.85);
+    const dust = createPoints(1600, 3.2, 0.25);
+    dust.rotation.z = Math.PI / 4;
+
+    starGroup.add(stars);
+    starGroup.add(dust);
+    scene.add(starGroup);
+
+    let frameId = 0;
+    const animate = () => {
+      starGroup.rotation.y += 0.0003;
+      starGroup.rotation.x += 0.0001;
+      frameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      scene.remove(starGroup);
+      starGroup.traverse((child) => {
+        if (child instanceof THREE.Points) {
+          child.geometry.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => mat.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    };
+  }, []);
+
   return (
     <div className="world-graph">
       <ForceGraph3D
@@ -91,9 +166,12 @@ export const WorldGraph = ({ onSelectNode }: WorldGraphProps) => {
         }
         linkOpacity={0.6}
         linkWidth={(link) => (link.type === 'BEEFING' ? 2.5 : 1.5)}
-        linkDirectionalParticles={(link) => (link.type === 'CRUSH' ? 6 : 2)}
-        linkDirectionalParticleWidth={2.5}
-        linkDirectionalParticleSpeed={0.008}
+        linkDirectionalParticles={(link) => (link.type === 'CRUSH' ? 10 : 4)}
+        linkDirectionalParticleWidth={2.8}
+        linkDirectionalParticleSpeed={0.012}
+        linkDirectionalParticleColor={(link) =>
+          RELATIONSHIP_COLORS[link.type as string] ?? '#cbd5f5'
+        }
         onNodeClick={(node) => {
           const nodeId = typeof node.id === 'number' ? node.id : null;
           onSelectNode?.(nodeId);

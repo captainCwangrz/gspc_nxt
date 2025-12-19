@@ -3,7 +3,11 @@ import { useChatStore } from '../stores/useChatStore';
 import { useGraphStore } from '../stores/useGraphStore';
 import { useUserStore } from '../stores/useUserStore';
 
-export const HUD = () => {
+interface HUDProps {
+  onOpenChat: (peerId: number) => void;
+}
+
+export const HUD = ({ onOpenChat }: HUDProps) => {
   const userId = useUserStore((state) => state.userId);
   const requests = useGraphStore((state) => state.requests);
   const nodes = useGraphStore((state) => state.nodes);
@@ -20,41 +24,52 @@ export const HUD = () => {
         id: numericId,
         count,
         label: user ? `${user.name} (@${user.username})` : `User ${peerId}`,
+        avatar: user?.avatar,
       };
     });
 
+  if (notifications.length === 0 && requests.length === 0) {
+    return null;
+  }
+
   return (
-    <aside className="hud">
-      <section className="hud-block">
-        <h2>Notifications</h2>
-        {notifications.length === 0 ? (
-          <p className="muted">All caught up.</p>
-        ) : (
-          <ul>
+    <aside className="notification-hud">
+      {notifications.length > 0 ? (
+        <section className="notif-stack">
+          <div className="notif-header">📬 Unread Messages</div>
+          <div className="notif-list">
             {notifications.map((notification) => (
-              <li key={notification.id}>
-                <span>{notification.label}</span>
-                <span className="badge">{notification.count} new</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      <section className="hud-block">
-        <h2>Pending Requests</h2>
-        {requests.length === 0 ? (
-          <p className="muted">No pending requests.</p>
-        ) : (
-          <ul>
-            {requests.map((request) => (
-              <li key={request.id}>
+              <button
+                key={notification.id}
+                type="button"
+                className="notif-card"
+                onClick={() => onOpenChat(notification.id)}
+              >
+                {notification.avatar ? (
+                  <img src={notification.avatar} alt="" />
+                ) : (
+                  <span className="notif-avatar-fallback">💬</span>
+                )}
                 <div>
-                  <span>@{request.username}</span>
-                  <span className="type">
-                    {RELATIONSHIP_LABELS[request.type] ?? request.type}
-                  </span>
+                  <strong>{notification.label}</strong>
+                  <span>{notification.count} new messages</span>
                 </div>
-                <div className="actions">
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {requests.length > 0 ? (
+        <section className="notif-stack">
+          <div className="notif-header">⚡ Incoming Requests</div>
+          <div className="notif-list">
+            {requests.map((request) => (
+              <div key={request.id} className="notif-card request-card">
+                <div>
+                  <strong>@{request.username}</strong>
+                  <span>{RELATIONSHIP_LABELS[request.type] ?? request.type}</span>
+                </div>
+                <div className="notif-actions">
                   <button
                     type="button"
                     className="ghost"
@@ -73,11 +88,11 @@ export const HUD = () => {
                     Accept
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        )}
-      </section>
+          </div>
+        </section>
+      ) : null}
     </aside>
   );
 };

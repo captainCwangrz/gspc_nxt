@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import api from '../lib/api';
+import { resolveAssetUrl } from '../lib/assets';
 
 export interface GraphNode {
   id: number;
@@ -12,8 +13,8 @@ export interface GraphNode {
 }
 
 export interface GraphLink {
-  source: number;
-  target: number;
+  source: number | { id: number };
+  target: number | { id: number };
   type: string;
   last_msg_id: number;
   deleted: boolean;
@@ -35,6 +36,9 @@ interface GraphState {
   applyGraphUpdate: (payload: { userId: number }) => Promise<void>;
   acceptRequest: (userId: number, requestId: number) => Promise<void>;
   rejectRequest: (userId: number, requestId: number) => Promise<void>;
+  requestRelationship: (userId: number, toId: number, type: string) => Promise<void>;
+  updateRelationship: (userId: number, toId: number, type: string) => Promise<void>;
+  removeRelationship: (userId: number, toId: number) => Promise<void>;
 }
 
 export const useGraphStore = create<GraphState>((set, get) => ({
@@ -47,7 +51,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       params: { userId, lastUpdate: get().lastUpdate ?? undefined },
     });
     const { nodes, links, requests, lastUpdate } = response.data;
-    set({ nodes, links, requests, lastUpdate });
+    const normalizedNodes = (nodes as GraphNode[]).map((node) => ({
+      ...node,
+      avatar: resolveAssetUrl(node.avatar),
+    }));
+    set({ nodes: normalizedNodes, links, requests, lastUpdate });
   },
   applyGraphUpdate: async ({ userId }) => {
     await get().refreshGraph(userId);
@@ -64,5 +72,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set((state) => ({
       requests: state.requests.filter((request) => request.id !== requestId),
     }));
+  },
+  requestRelationship: async (userId, toId, type) => {
+    await api.post('/relationships/request', { userId, toId, type });
+    await get().refreshGraph(userId);
+  },
+  updateRelationship: async (userId, toId, type) => {
+    await api.post('/relationships/update', { userId, toId, type });
+    await get().refreshGraph(userId);
+  },
+  removeRelationship: async (userId, toId) => {
+    await api.post('/relationships/remove', { userId, toId });
+    await get().refreshGraph(userId);
   },
 }));
